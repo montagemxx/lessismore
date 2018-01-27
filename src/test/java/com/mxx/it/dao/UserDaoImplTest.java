@@ -4,7 +4,9 @@ import static org.easymock.EasyMock.*;
 import static org.junit.Assert.*;
 
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.easymock.Capture;
@@ -12,6 +14,8 @@ import org.easymock.EasyMock;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.springframework.dao.DataAccessException;
+import org.springframework.dao.RecoverableDataAccessException;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -43,6 +47,7 @@ public class UserDaoImplTest {
 	@Test
 	public void testGetUser(){
 		String id = "1002";
+		
 		User u = new User();
 		u.setId("1002");
 		
@@ -72,6 +77,7 @@ public class UserDaoImplTest {
 		
 		assertNotNull(user);
 	}
+	
 	@Test(expected = RuntimeException.class)
 	public void testGetUser_Ex(){
 		String id = "1002";
@@ -80,7 +86,7 @@ public class UserDaoImplTest {
 		Capture<HashMap> paramCapture = newCapture();
 		Capture<RowMapper> rowMapperCapture = newCapture();
 		
-		expect(template.queryForObject(capture(sqlCapture ), capture(paramCapture), capture(rowMapperCapture))).andThrow(new SQLException());
+		expect(template.queryForObject(capture(sqlCapture ), capture(paramCapture), capture(rowMapperCapture))).andThrow(new RecoverableDataAccessException("ex"));
 		replay(template);
 		
 		User user = userDao.getUser(id);
@@ -88,7 +94,16 @@ public class UserDaoImplTest {
 	
 	@Test
 	public void testGetAllUsers(){
-		userDao.getAllUsers();
+		List<User> users =new ArrayList<>();
 		
+		Capture<String> sqlCapture = newCapture();
+		Capture<RowMapper> rowMapperCapture = newCapture();
+		expect(template.query(capture(sqlCapture), capture(rowMapperCapture))).andReturn(users);
+		replay(template);
+		
+		List<User> results =userDao.getAllUsers();
+		
+		assertNotNull(results);
+		assertEquals(0,results.size());
 	}
 }
